@@ -87,6 +87,10 @@ def gae_for(args):
             #print("Epoch:", '%04d' % (epoch + 1), "train_loss=", "{:.5f}".format(cur_loss), "time=", "{:.5f}".format(time.time() - t), "Pretrain:",pretrain)
             print("Epoch:", '%04d' % (epoch + 1), "train_loss=", "{:.5f}".format(cur_loss), "lr=", "{:.5f}".format(scheduler.get_last_lr()[0]))
 
+    # Initialize clusters
+    recon, embed = model(features, adj_norm)
+    kmeans.cluster(embed)
+
     # TRAIN ON ALL THREE LOSES WITH OUTLIER UPDATES
     for epoch in range(args.epochs):
         # Update the values of O_i1 and O_i2
@@ -101,6 +105,8 @@ def gae_for(args):
 
         recon, embed = model(features, adj_norm)
 
+        kmeans.cluster(embed)
+
         structure_loss = compute_structure_loss(adj_norm, embed, o_1)
         attribute_loss = compute_attribute_loss(lossfn, features, recon, o_2)
         clustering_loss = kmeans.get_loss(embed)
@@ -112,8 +118,6 @@ def gae_for(args):
         loss.backward()
         cur_loss = loss.item()
         optimizer.step()
-
-        kmeans.cluster(embed)
 
         if (epoch+1) % 100 == 0:
             #print("Epoch:", '%04d' % (epoch + 1), "train_loss=", "{:.5f}".format(cur_loss), "time=", "{:.5f}".format(time.time() - t), "Pretrain:",pretrain)
